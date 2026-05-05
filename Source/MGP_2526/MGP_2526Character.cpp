@@ -69,6 +69,10 @@ void AMGP_2526Character::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMGP_2526Character::Look);
+
+		// Grappling
+		EnhancedInputComponent->BindAction(GrappleAction, ETriggerEvent::Started, this, &AMGP_2526Character::GrappleStart);
+		EnhancedInputComponent->BindAction(GrappleAction, ETriggerEvent::Completed, this, &AMGP_2526Character::GrappleStop);
 	}
 	else
 	{
@@ -144,4 +148,34 @@ void AMGP_2526Character::DoSprintStart()
 void AMGP_2526Character::DoSprintStop()
 {
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
+}
+
+void AMGP_2526Character::GrappleStart()
+{
+	FVector start = GetActorLocation();
+	FVector forward = FollowCamera->GetForwardVector();
+	start = FVector(start.X + (forward.X * 100), start.Y + (forward.Y * 100), start.Z + 50 + (forward.Z * 100));
+	FVector end = start + (forward * grappleLength);
+	FHitResult hit;
+	FCollisionQueryParams collisionParams;
+	collisionParams.AddIgnoredActor(this);
+
+	if (GetWorld())
+	{
+		bool actorHit = GetWorld()->LineTraceSingleByChannel(hit, start, end, ECC_Pawn, collisionParams, FCollisionResponseParams());
+
+		// debug line
+		DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 2.f, 0.f, 10.f);
+		if (actorHit && hit.GetActor())
+		{
+			//where to add grapple code
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, hit.GetActor()->GetFName().ToString());
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, hit.ImpactPoint.ToString());
+		}
+	}
+}
+
+void AMGP_2526Character::GrappleStop()
+{
+
 }

@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "DrawDebugHelpers.h"
 #include "Logging/LogMacros.h"
 #include "MGP_2526Character.generated.h"
 
@@ -53,6 +56,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MouseLookAction;
 
+	/** Grapple Input Action */
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* GrappleAction;
+
+	/** Retract Input Action */
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* RetractAction;
+
+	UPROPERTY(EditAnywhere, Category = "Variable")
+	float grappleLength;
+
 public:
 
 	/** Constructor */
@@ -94,6 +108,12 @@ public:
 	/** Handles jump pressed inputs from either controls or UI interfaces */
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoJumpEnd();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void GrappleStart();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void GrappleStop();
 
 public:
 
