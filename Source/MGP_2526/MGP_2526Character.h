@@ -67,6 +67,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Variable")
 	float grappleLength;
 
+	UPROPERTY(EditAnywhere, Category = "Class")
+	TSubclassOf<AActor> GrappleClass;
+
+	FVector SpawnLocation;
+
+	FRotator SpawnRotation;
+
+	UWorld* World;
+
 public:
 
 	/** Constructor */

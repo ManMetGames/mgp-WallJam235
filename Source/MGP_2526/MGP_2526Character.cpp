@@ -154,7 +154,7 @@ void AMGP_2526Character::GrappleStart()
 {
 	FVector start = GetActorLocation();
 	FVector forward = FollowCamera->GetForwardVector();
-	start = FVector(start.X + (forward.X * 100), start.Y + (forward.Y * 100), start.Z + 50 + (forward.Z * 100));
+	start = FVector(start.X + (forward.X * 100), start.Y + (forward.Y * 100), start.Z + 75 + (forward.Z * 100));
 	FVector end = start + (forward * grappleLength);
 	FHitResult hit;
 	FCollisionQueryParams collisionParams;
@@ -162,13 +162,19 @@ void AMGP_2526Character::GrappleStart()
 
 	if (GetWorld())
 	{
-		bool actorHit = GetWorld()->LineTraceSingleByChannel(hit, start, end, ECC_Pawn, collisionParams, FCollisionResponseParams());
+		World = GetWorld();
+		bool actorHit = World->LineTraceSingleByChannel(hit, start, end, ECC_Pawn, collisionParams, FCollisionResponseParams());
+
+		SpawnLocation = this->GetActorLocation();
+		SpawnRotation = this->GetActorRotation();
 
 		// debug line
-		DrawDebugLine(GetWorld(), start, end, FColor::Red, false, 2.f, 0.f, 10.f);
+		DrawDebugLine(World, start, end, FColor::Red, false, 2.f, 0.f, 10.f);
 		if (actorHit && hit.GetActor())
 		{
-			//where to add grapple code
+			//make actor class here
+			World->SpawnActor<AActor>(GrappleClass, SpawnLocation, SpawnRotation, FActorSpawnParameters());
+
 			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, hit.GetActor()->GetFName().ToString());
 			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, hit.ImpactPoint.ToString());
 		}
