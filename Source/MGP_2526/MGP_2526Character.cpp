@@ -243,7 +243,6 @@ void AMGP_2526Character::GrappleStart()
 		if (actorHit && hit.GetActor())
 		{
 			isGrappling = true;
-			GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Falling);
 			GrappleCable->SetVisibility(true);
 			GrapplePoint = hit.ImpactPoint;
 
