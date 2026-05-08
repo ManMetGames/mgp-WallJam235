@@ -69,6 +69,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Grappling")
 	class UCableComponent* GrappleCable;
 
+	//UPROPERTY(EditAnywhere, Category="Grappling")
+	//class UPhysicsConstraint* PhysicsConstraint;
+
 	UPROPERTY(EditAnywhere, Category = "Variable")
 	float grappleLength;
 
@@ -76,7 +79,17 @@ protected:
 
 	bool isRetracting = false;
 
+	bool isSwinging = false;
+
+	float pendulumDotProduct = 0.f;
+
+	FVector Velocity;
+
 	FVector GrapplePoint;
+
+	FVector ForceDirection;
+
+	FVector PendulumVector;
 
 	UWorld* World;
 

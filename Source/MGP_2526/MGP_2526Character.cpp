@@ -13,6 +13,7 @@
 #include "MGP_2526.h"
 #include "CableComponent.h"
 
+
 AMGP_2526Character::AMGP_2526Character()
 {
 	// Set size for collision capsule
@@ -61,11 +62,25 @@ void AMGP_2526Character::Tick(float DeltaTime)
 
 	if (isGrappling)
 	{
+		ForceDirection = GrapplePoint - GetActorLocation();
+		if (GetCharacterMovement()->IsFalling() && GetActorLocation().Z < GrapplePoint.Z)
+		{
+			isSwinging = true;
+			Velocity = GetVelocity();
+			pendulumDotProduct = ((Velocity.X * ForceDirection.X) + (Velocity.Y * ForceDirection.Y) + (Velocity.Z * ForceDirection.Z));
+			PendulumVector = pendulumDotProduct * (ForceDirection.GetSafeNormal());
+
+			//GetCharacterMovement()->AddForce();
+		}
+		else
+		{
+			isSwinging = false;
+		}
 		GrappleCable->EndLocation = GetActorTransform().InverseTransformPosition(GrapplePoint);
 		//pulls the player to the GrapplePoint	
 		if (isRetracting)
 		{
-			GetCharacterMovement()->AddForce((GrapplePoint - GetActorLocation()).GetSafeNormal() * 1000000);
+			GetCharacterMovement()->AddForce(ForceDirection.GetSafeNormal() * 1000000);
 		}
 	}
 }
