@@ -72,8 +72,11 @@ protected:
 	//UPROPERTY(EditAnywhere, Category="Grappling")
 	//class UPhysicsConstraint* PhysicsConstraint;
 
-	UPROPERTY(EditAnywhere, Category = "Variable")
-	float grappleLength;
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float grappleRange;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float maxGrappleLength;
 
 	float distanceFromGrapple;
 
