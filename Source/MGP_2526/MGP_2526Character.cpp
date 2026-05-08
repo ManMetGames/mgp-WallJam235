@@ -60,27 +60,58 @@ void AMGP_2526Character::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	distanceFromGrapple = (GetActorLocation() - GrapplePoint).Length();
+	if (distanceFromGrapple > grappleLength)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, "hit.GetActor()->GetFName().ToString()");
+		GetCharacterMovement()->StopMovementImmediately();
+	}
+
 	if (isGrappling)
 	{
+		SwingBoost = FVector(0.f, 0.f, 0.f);
+		GrappleCable->EndLocation = GetActorTransform().InverseTransformPosition(GrapplePoint);
 		ForceDirection = GrapplePoint - GetActorLocation();
 		if (GetCharacterMovement()->IsFalling() && GetActorLocation().Z < GrapplePoint.Z)
 		{
 			isSwinging = true;
 			Velocity = GetVelocity();
-			pendulumDotProduct = ((Velocity.X * ForceDirection.X) + (Velocity.Y * ForceDirection.Y) + (Velocity.Z * ForceDirection.Z));
-			PendulumVector = pendulumDotProduct * (ForceDirection.GetSafeNormal());
 
-			//GetCharacterMovement()->AddForce();
+			//pendulum swing
+			pendulumDotProduct = ((Velocity.X * ForceDirection.X) + (Velocity.Y * ForceDirection.Y) + (Velocity.Z * ForceDirection.Z));
+			PendulumVector = pendulumDotProduct * (ForceDirection.GetSafeNormal()) * -2;
+
+			//force where player is looking
+			ForwardBoost.X = FollowCamera->GetForwardVector().X;
+			ForwardBoost.Y = FollowCamera->GetForwardVector().Y;
+			ForwardBoost.Z = 0;
+			ForwardBoost = ForwardBoost.GetSafeNormal() * 10000;
+
+			//boost when reaching bottom of the arc
+			pendulumCrossProductX = ((ForceDirection.GetSafeNormal().Y * Velocity.Z) - (ForceDirection.GetSafeNormal().Z * Velocity.Y));
+			pendulumCrossProductY = ((ForceDirection.GetSafeNormal().Z * Velocity.X) - (ForceDirection.GetSafeNormal().X) * Velocity.Z);
+			pendulumCrossProductZ = ((ForceDirection.GetSafeNormal().X * Velocity.Y) - (ForceDirection.GetSafeNormal().Y) * Velocity.X);
+			pendulumCrossProduct = FVector(pendulumCrossProductX, pendulumCrossProductY, pendulumCrossProductZ) * -1;
+
+			PointOnArc = FRotationMatrix::MakeFromZX(ForceDirection, pendulumCrossProduct).Rotator();
+
+			if (PointOnArc.Roll > -10 && PointOnArc.Roll < 30)
+			{
+				SwingBoost = Velocity.GetSafeNormal() * 1000;
+			}
+
+			GetCharacterMovement()->AddForce(PendulumVector + ForwardBoost + SwingBoost);
 		}
 		else
 		{
 			isSwinging = false;
 		}
-		GrappleCable->EndLocation = GetActorTransform().InverseTransformPosition(GrapplePoint);
+		//Gravity compensation
+		GetCharacterMovement()->AddForce(ForceDirection.GetSafeNormal() * 10000);
 		//pulls the player to the GrapplePoint	
 		if (isRetracting)
 		{
-			GetCharacterMovement()->AddForce(ForceDirection.GetSafeNormal() * 1000000);
+			GetCharacterMovement()->AddForce(ForceDirection.GetSafeNormal() * 500000);
 		}
 	}
 }
@@ -194,7 +225,7 @@ void AMGP_2526Character::GrappleStart()
 	FVector start = GetActorLocation();
 	FVector forward = FollowCamera->GetForwardVector();
 	start = FVector(start.X + (forward.X * 100), start.Y + (forward.Y * 100), start.Z + 75 + (forward.Z * 100));
-	FVector end = start + (forward * grappleLength);
+	FVector end = start + (forward * (grappleLength-2000));
 	FHitResult hit;
 	FCollisionQueryParams collisionParams;
 	collisionParams.AddIgnoredActor(this);

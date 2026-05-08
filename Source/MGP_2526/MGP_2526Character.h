@@ -75,19 +75,31 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Variable")
 	float grappleLength;
 
+	float distanceFromGrapple;
+
 	bool isGrappling = false;
 
 	bool isRetracting = false;
 
 	bool isSwinging = false;
 
-	float pendulumDotProduct = 0.f;
+	float pendulumDotProduct;
+
+	double pendulumCrossProductX, pendulumCrossProductY, pendulumCrossProductZ;
+
+	FVector pendulumCrossProduct;
 
 	FVector Velocity;
+
+	FRotator PointOnArc;
 
 	FVector GrapplePoint;
 
 	FVector ForceDirection;
+
+	FVector ForwardBoost;
+
+	FVector SwingBoost;
 
 	FVector PendulumVector;
 
