@@ -11,6 +11,8 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "MGP_2526.h"
+#include "CableComponent.h"
+
 
 AMGP_2526Character::AMGP_2526Character()
 {
@@ -48,6 +50,70 @@ AMGP_2526Character::AMGP_2526Character()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+
+	// Create a grapple attached to player
+	GrappleCable = CreateDefaultSubobject<UCableComponent>(TEXT("Grappling Line"));
+	GrappleCable->SetupAttachment(GetRootComponent());
+	GrappleCable->SetVisibility(false);
+}
+
+void AMGP_2526Character::Tick(float DeltaTime) //this code is run every tick
+{
+	Super::Tick(DeltaTime);
+
+	if (isGrappling)
+	{
+		SwingBoost = FVector(0.f, 0.f, 0.f); // setting/resetting important variables
+		Velocity = GetVelocity();
+		GrappleCable->EndLocation = GetActorTransform().InverseTransformPosition(GrapplePoint);
+		ForceDirection = GrapplePoint - GetActorLocation();
+		distanceFromGrapple = (GetActorLocation() - GrapplePoint).Length();
+
+		if (distanceFromGrapple > maxGrappleLength) // breaks grapple if player is too far from GrapplePoint
+		{
+			GrappleStop();
+		}
+
+		if (isRetracting) //pulls the player to the GrapplePoint	
+		{
+			GetCharacterMovement()->AddForce(ForceDirection.GetSafeNormal() * retractForce);
+		}
+		else if (GetCharacterMovement()->IsFalling() && GetActorLocation().Z < GrapplePoint.Z)
+		{
+			isSwinging = true;
+
+			//pendulum swing
+			pendulumDotProduct = ((Velocity.X * ForceDirection.X) + (Velocity.Y * ForceDirection.Y) + (Velocity.Z * ForceDirection.Z));
+			PendulumVector = pendulumDotProduct * (ForceDirection.GetSafeNormal()) * -pendulumForceMultiplier;
+
+			//force where player is looking
+			ForwardBoost.X = FollowCamera->GetForwardVector().X;
+			ForwardBoost.Y = FollowCamera->GetForwardVector().Y;
+			ForwardBoost.Z = 0;
+			ForwardBoost = ForwardBoost.GetSafeNormal() * forwardBoostMultiplier;
+
+			//boost when reaching bottom of the arc
+			pendulumCrossProductX = ((ForceDirection.GetSafeNormal().Y * Velocity.Z) - (ForceDirection.GetSafeNormal().Z * Velocity.Y));
+			pendulumCrossProductY = ((ForceDirection.GetSafeNormal().Z * Velocity.X) - (ForceDirection.GetSafeNormal().X) * Velocity.Z);
+			pendulumCrossProductZ = ((ForceDirection.GetSafeNormal().X * Velocity.Y) - (ForceDirection.GetSafeNormal().Y) * Velocity.X);
+			pendulumCrossProduct = FVector(pendulumCrossProductX, pendulumCrossProductY, pendulumCrossProductZ) * -1;
+
+			PointOnArc = FRotationMatrix::MakeFromZX(ForceDirection, pendulumCrossProduct).Rotator();
+
+			if (PointOnArc.Roll > minimumArc && PointOnArc.Roll < maximumArc)
+			{
+				SwingBoost = Velocity.GetSafeNormal() * forwardBoostMultiplier;
+			}
+
+			GetCharacterMovement()->AddForce(PendulumVector + ForwardBoost + SwingBoost);
+		}
+		//Gravity compensation
+		GetCharacterMovement()->AddForce(ForceDirection.GetSafeNormal() * gravityCompensation);
+	}
+	else
+	{
+		isSwinging = false;
+	}
 }
 
 void AMGP_2526Character::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -59,12 +125,24 @@ void AMGP_2526Character::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
+		// Sprinting
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AMGP_2526Character::DoSprintStart);
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AMGP_2526Character::DoSprintStop);
+
 		// Moving
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMGP_2526Character::Move);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AMGP_2526Character::Look);
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMGP_2526Character::Look);
+
+		// Grappling
+		EnhancedInputComponent->BindAction(GrappleAction, ETriggerEvent::Started, this, &AMGP_2526Character::GrappleStart);
+		EnhancedInputComponent->BindAction(GrappleAction, ETriggerEvent::Completed, this, &AMGP_2526Character::GrappleStop);
+
+		// Retracting Grapple
+		EnhancedInputComponent->BindAction(RetractAction, ETriggerEvent::Started, this, &AMGP_2526Character::RetractStart);
+		EnhancedInputComponent->BindAction(RetractAction, ETriggerEvent::Completed, this, &AMGP_2526Character::RetractStop);
 	}
 	else
 	{
@@ -130,4 +208,63 @@ void AMGP_2526Character::DoJumpEnd()
 {
 	// signal the character to stop jumping
 	StopJumping();
+}
+
+void AMGP_2526Character::DoSprintStart()
+{
+	GetCharacterMovement()->MinAnalogWalkSpeed = 1000.f;
+}
+
+void AMGP_2526Character::DoSprintStop()
+{
+	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
+}
+
+void AMGP_2526Character::GrappleStart()
+{
+	FVector start = GetActorLocation(); //setting parametres for line trace
+	FVector forward = FollowCamera->GetForwardVector();
+	start = FVector(start.X + (forward.X * 100), start.Y + (forward.Y * 100), start.Z + 75 + (forward.Z * 100));
+	FVector end = start + (forward * (grappleRange));
+	FHitResult hit;
+	FCollisionQueryParams collisionParams;
+
+	collisionParams.AddIgnoredActor(this);
+
+	if (GetWorld())
+	{
+		World = GetWorld();
+		bool actorHit = World->LineTraceSingleByChannel(hit, start, end, ECC_Pawn, collisionParams, FCollisionResponseParams());
+		FCollisionShape::MakeSphere(50.f); //this provides a small amount of aiming forgiveness if they miss
+
+
+		// debug line
+		//DrawDebugLine(World, start, end, FColor::Red, false, 2.f, 0.f, 10.f);
+		if (actorHit && hit.GetActor())
+		{
+			isGrappling = true;
+			GrappleCable->SetVisibility(true);
+			GrapplePoint = hit.ImpactPoint;
+
+			//debug
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, hit.GetActor()->GetFName().ToString());
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, hit.ImpactPoint.ToString());
+		}
+	}
+}
+
+void AMGP_2526Character::GrappleStop()
+{
+	isGrappling = false;
+	GrappleCable->SetVisibility(false);
+}
+
+void AMGP_2526Character::RetractStart()
+{
+	isRetracting = true;
+}
+
+void AMGP_2526Character::RetractStop()
+{
+	isRetracting = false;
 }

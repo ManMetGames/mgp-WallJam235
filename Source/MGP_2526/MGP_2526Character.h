@@ -4,6 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "DrawDebugHelpers.h"
 #include "Logging/LogMacros.h"
 #include "MGP_2526Character.generated.h"
 
@@ -33,9 +36,15 @@ class AMGP_2526Character : public ACharacter
 	
 protected:
 
+	//Inputs
+
 	/** Jump Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* JumpAction;
+
+	/** Sprint Input Action */
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* SprintAction;
 
 	/** Move Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
@@ -49,6 +58,76 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MouseLookAction;
 
+	/** Grapple Input Action */
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* GrappleAction;
+
+	/** Retract Input Action */
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* RetractAction;
+
+
+	UPROPERTY(EditAnywhere, Category="Grappling")
+	class UCableComponent* GrappleCable;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float grappleRange;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float maxGrappleLength;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float retractForce;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float pendulumForceMultiplier;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float forwardBoostMultiplier;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float minimumArc;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float maximumArc;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float gravityCompensation;
+
+
+	float distanceFromGrapple;
+
+	bool isGrappling = false;
+
+	bool isRetracting = false;
+
+	bool isSwinging = false;
+
+
+	float pendulumDotProduct;
+
+	double pendulumCrossProductX, pendulumCrossProductY, pendulumCrossProductZ;
+
+	FVector pendulumCrossProduct;
+
+	FVector Velocity;
+
+	FRotator PointOnArc;
+
+	FVector GrapplePoint;
+
+	FVector ForceDirection;
+
+	FVector ForwardBoost;
+
+	FVector SwingBoost;
+
+	FVector PendulumVector;
+
+
+	UWorld* World;
+
+
 public:
 
 	/** Constructor */
@@ -58,6 +137,8 @@ protected:
 
 	/** Initialize input action bindings */
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	void Tick(float DeltaTime);
 
 protected:
 
@@ -77,6 +158,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoLook(float Yaw, float Pitch);
 
+	UFUNCTION(BlueprintCallable, Category="Input")
+	virtual void DoSprintStart();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void DoSprintStop();
+
 	/** Handles jump pressed inputs from either controls or UI interfaces */
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoJumpStart();
@@ -84,6 +171,18 @@ public:
 	/** Handles jump pressed inputs from either controls or UI interfaces */
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoJumpEnd();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void GrappleStart();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void GrappleStop();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void RetractStart();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void RetractStop();
 
 public:
 
