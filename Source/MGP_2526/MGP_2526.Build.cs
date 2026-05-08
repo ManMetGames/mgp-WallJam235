@@ -9,6 +9,7 @@ public class MGP_2526 : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicDependencyModuleNames.AddRange(new string[] {
+			"CableComponent",
 			"Core",
 			"CoreUObject",
 			"Engine",

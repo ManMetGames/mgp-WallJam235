@@ -11,6 +11,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "MGP_2526.h"
+#include "CableComponent.h"
 
 AMGP_2526Character::AMGP_2526Character()
 {
@@ -48,6 +49,25 @@ AMGP_2526Character::AMGP_2526Character()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+
+	GrappleCable = CreateDefaultSubobject<UCableComponent>(TEXT("Grappling Line"));
+	GrappleCable->SetupAttachment(GetRootComponent());
+	GrappleCable->SetVisibility(false);
+}
+
+void AMGP_2526Character::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (isGrappling)
+	{
+		GrappleCable->EndLocation = GetActorTransform().InverseTransformPosition(GrapplePoint);
+		//pulls the player to the GrapplePoint	
+		if (isRetracting)
+		{
+			GetCharacterMovement()->AddForce((GrapplePoint - GetActorLocation()).GetSafeNormal() * 1000000);
+		}
+	}
 }
 
 void AMGP_2526Character::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -73,6 +93,10 @@ void AMGP_2526Character::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		// Grappling
 		EnhancedInputComponent->BindAction(GrappleAction, ETriggerEvent::Started, this, &AMGP_2526Character::GrappleStart);
 		EnhancedInputComponent->BindAction(GrappleAction, ETriggerEvent::Completed, this, &AMGP_2526Character::GrappleStop);
+
+		//Retracting
+		EnhancedInputComponent->BindAction(RetractAction, ETriggerEvent::Started, this, &AMGP_2526Character::RetractStart);
+		EnhancedInputComponent->BindAction(RetractAction, ETriggerEvent::Completed, this, &AMGP_2526Character::RetractStop);
 	}
 	else
 	{
@@ -164,16 +188,20 @@ void AMGP_2526Character::GrappleStart()
 	{
 		World = GetWorld();
 		bool actorHit = World->LineTraceSingleByChannel(hit, start, end, ECC_Pawn, collisionParams, FCollisionResponseParams());
+		FCollisionShape::MakeSphere(50.f);
 
-		SpawnLocation = this->GetActorLocation();
-		SpawnRotation = this->GetActorRotation();
 
 		// debug line
-		DrawDebugLine(World, start, end, FColor::Red, false, 2.f, 0.f, 10.f);
+		//DrawDebugLine(World, start, end, FColor::Red, false, 2.f, 0.f, 10.f);
 		if (actorHit && hit.GetActor())
 		{
 			//make actor class here
-			World->SpawnActor<AActor>(GrappleClass, SpawnLocation, SpawnRotation, FActorSpawnParameters());
+			//Grapple = World->SpawnActor<AActor>(GrappleClass, SpawnLocation, SpawnRotation, FActorSpawnParameters());
+
+			isGrappling = true;
+			GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Falling);
+			GrappleCable->SetVisibility(true);
+			GrapplePoint = hit.ImpactPoint;
 
 			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, hit.GetActor()->GetFName().ToString());
 			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, hit.ImpactPoint.ToString());
@@ -183,5 +211,20 @@ void AMGP_2526Character::GrappleStart()
 
 void AMGP_2526Character::GrappleStop()
 {
+	isGrappling = false;
+	if (!GetCharacterMovement()->IsFalling())
+	{
+		GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Falling);
+	}
+	GrappleCable->SetVisibility(false);
+}
 
+void AMGP_2526Character::RetractStart()
+{
+	isRetracting = true;
+}
+
+void AMGP_2526Character::RetractStop()
+{
+	isRetracting = false;
 }

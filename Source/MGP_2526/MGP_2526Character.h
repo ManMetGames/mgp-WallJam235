@@ -33,6 +33,8 @@ class AMGP_2526Character : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
+
+	UCapsuleComponent* Capsule;
 	
 protected:
 
@@ -64,17 +66,20 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* RetractAction;
 
+	UPROPERTY(EditAnywhere, Category="Grappling")
+	class UCableComponent* GrappleCable;
+
 	UPROPERTY(EditAnywhere, Category = "Variable")
 	float grappleLength;
 
-	UPROPERTY(EditAnywhere, Category = "Class")
-	TSubclassOf<AActor> GrappleClass;
+	bool isGrappling = false;
 
-	FVector SpawnLocation;
+	bool isRetracting = false;
 
-	FRotator SpawnRotation;
+	FVector GrapplePoint;
 
 	UWorld* World;
+
 
 public:
 
@@ -85,6 +90,8 @@ protected:
 
 	/** Initialize input action bindings */
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	void Tick(float DeltaTime);
 
 protected:
 
@@ -123,6 +130,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	virtual void GrappleStop();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void RetractStart();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	virtual void RetractStop();
 
 public:
 
