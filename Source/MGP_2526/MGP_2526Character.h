@@ -33,10 +33,10 @@ class AMGP_2526Character : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
-
-	UCapsuleComponent* Capsule;
 	
 protected:
+
+	//Inputs
 
 	/** Jump Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
@@ -66,17 +66,34 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* RetractAction;
 
+
 	UPROPERTY(EditAnywhere, Category="Grappling")
 	class UCableComponent* GrappleCable;
-
-	//UPROPERTY(EditAnywhere, Category="Grappling")
-	//class UPhysicsConstraint* PhysicsConstraint;
 
 	UPROPERTY(EditAnywhere, Category = "Grappling")
 	float grappleRange;
 
 	UPROPERTY(EditAnywhere, Category = "Grappling")
 	float maxGrappleLength;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float retractForce;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float pendulumForceMultiplier;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float forwardBoostMultiplier;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float minimumArc;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float maximumArc;
+
+	UPROPERTY(EditAnywhere, Category = "Grappling")
+	float gravityCompensation;
+
 
 	float distanceFromGrapple;
 
@@ -85,6 +102,7 @@ protected:
 	bool isRetracting = false;
 
 	bool isSwinging = false;
+
 
 	float pendulumDotProduct;
 
@@ -105,6 +123,7 @@ protected:
 	FVector SwingBoost;
 
 	FVector PendulumVector;
+
 
 	UWorld* World;
 
